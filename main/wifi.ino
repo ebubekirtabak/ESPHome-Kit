@@ -44,8 +44,6 @@ void connectToWifi() {
     Serial.println(WiFi.localIP());
 }
 
-
-
 String scanWifi() {
     Serial.println("Starting WiFi scan...");
     int n = WiFi.scanNetworks();
@@ -76,7 +74,6 @@ String scanWifi() {
     WiFi.scanDelete();
     return json;
 }
-
 
 void handleWifiScanRequest(AsyncWebServerRequest *request) {
   if (!scanInProgress && (millis() - lastScanMillis > 30000)) {
