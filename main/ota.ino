@@ -1,12 +1,7 @@
 void setupOTA() {
-    // Port defaults to 8266
     ArduinoOTA.setPort(8266);
-    // Hostname defaults to esp8266-[ChipID]
     ArduinoOTA.setHostname("myesp8266");
-    // No authentication by default
     ArduinoOTA.setPassword("admin");
-    // Password can be set with it's md5 value as well
-    // MD5(admin) = 21232f297a57a5a743894a0e4a801fc3
     ArduinoOTA.setPasswordHash("21232f297a57a5a743894a0e4a801fc3");
 }
 
@@ -18,14 +13,14 @@ void initOTA() {
     } else {
       type = "filesystem";
     }
- 	
- 		Serial.println("Start updating " + type); 
+
+ 		Serial.println("Start updating " + type);
   });
   ArduinoOTA.onEnd([](){
-    Serial.println("\nEnd"); 
+    Serial.println("\nEnd");
   });
   ArduinoOTA.onProgress([](unsigned int progress, unsigned int total){
-    Serial.printf("Progress: %u%%\r", (progress / (total / 100))); 
+    Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
   });
   ArduinoOTA.onError([](ota_error_t error){
  		Serial.printf("Error[%u]: ", error);
@@ -39,7 +34,7 @@ void initOTA() {
  			Serial.println("Receive Failed");
  		} else if (error == OTA_END_ERROR) {
  			Serial.println("End Failed");
- 		} 
+ 		}
   });
 
   ArduinoOTA.begin();
