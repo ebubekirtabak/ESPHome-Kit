@@ -18,6 +18,9 @@ bool GPIO_State = 0;
 
 AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
+String scanResults = "";
+bool scanInProgress = false;
+int lastScanMillis;
 
 void notifyClients()
 {
