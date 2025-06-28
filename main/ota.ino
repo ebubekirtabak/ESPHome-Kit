@@ -1,8 +1,8 @@
 void setupOTA() {
-    ArduinoOTA.setPort(8266);
-    ArduinoOTA.setHostname("myesp8266");
-    ArduinoOTA.setPassword("admin");
-    ArduinoOTA.setPasswordHash("21232f297a57a5a743894a0e4a801fc3");
+  ArduinoOTA.setPort(8266);
+  ArduinoOTA.setHostname("myesp8266");
+  ArduinoOTA.setPassword("admin");
+  ArduinoOTA.setPasswordHash("21232f297a57a5a743894a0e4a801fc3");
 }
 
 void initOTA() {
