@@ -23,83 +23,90 @@ String loadWiFiConfig() {
   return "";
 }
 
+
 void connectToWifi() {
-    String config = loadWiFiConfig();
-    String ssid = defaultSSID;
-    String password = defaultPassword;
+    WiFi.begin(defaultSSID, defaultPassword);
+    if (!WiFi.config(local_IP, gateway, subnet, primaryDNS, secondaryDNS)) {
+      Serial.println("STA Failed to configure");
+    }
 
-    if (config.length() > 0) {
-      DynamicJsonDocument doc(512);
-      DeserializationError error = deserializeJson(doc, config);
-      if (!error) {
-        ssid = doc["ssid"].as<String>();
-        password = doc["password"].as<String>();
-        Serial.println("Using saved WiFi credentials");
-        Serial.println("SSID: " + ssid);
-      } else {
-        Serial.println("Failed to parse saved WiFi config, using defaults");
+    while (WiFi.waitForConnectResult() != WL_CONNECTED) {
+      Serial.println("Connection Failed! Rebooting...");
+      digitalWrite(led, HIGH);
+      // WiFi.disconnect();
+      delay(900);
+      // ESP.restart();
+    }
+
+    Serial.println("");
+    Serial.println("WiFi connected");
+    Serial.println("IP address: ");
+    Serial.println(WiFi.localIP());
+}
+
+
+
+String scanWifi() {
+    Serial.println("Starting WiFi scan...");
+    int n = WiFi.scanNetworks();
+    if (n <= 0) {
+        Serial.printf("No networks found or scan failed: %d", n);
+        WiFi.scanDelete();
+      return "[]";
+    }
+
+    int maxNetworks = min(n, 10);
+
+    String json = "[";
+    for (int i = 0; i < maxNetworks; i++) {
+      Serial.printf("Network %d: SSID='%s', RSSI=%d, Secure=%s\n",
+                     i, WiFi.SSID(i).c_str(), WiFi.RSSI(i),
+                     (WiFi.encryptionType(i) != ENC_TYPE_NONE) ? "true" : "false");
+      if (i > 0) json += ",";
+      String ssid = WiFi.SSID(i);
+      ssid.replace("\"", "\\\"");
+      json += "{\"ssid\":\"" + ssid + "\",";
+      json += "\"rssi\":" + String(WiFi.RSSI(i)) + ",";
+      json += "\"secure\":" + String(WiFi.encryptionType(i) != ENC_TYPE_NONE ? "true" : "false") + "}";
+      delay(1);
+      if (i % 3 == 0) yield();
+    }
+    json += "]";
+
+    WiFi.scanDelete();
+    return json;
+}
+
+
+void handleWifiScanRequest(AsyncWebServerRequest *request) {
+  if (!scanInProgress && (millis() - lastScanMillis > 30000)) {
+    scanInProgress = true;
+    scanResults = "";
+    WiFi.scanNetworksAsync([&](int networksFound) {
+      DynamicJsonDocument doc(2048);
+
+      JsonArray arr = doc.createNestedArray("networks");
+      for (int i = 0; i < networksFound; i++) {
+        JsonObject net = arr.createNestedObject();
+        net["ssid"] = WiFi.SSID(i);
+        net["rssi"] = WiFi.RSSI(i);
+        net["bssid"] = WiFi.BSSIDstr(i);
+        net["channel"] = WiFi.channel(i);
+        net["encryptionType"] = WiFi.encryptionType(i);
       }
+
+      doc["status"] = "scan_completed";
+      serializeJson(doc, scanResults);
+      Serial.printf("Scan completed, found %d networks\n", networksFound);
+      scanInProgress = false;
+      lastScanMillis = millis();
+    });
+    request->send(200, "application/json", "{\"status\":\"scan_started\"}");
+  } else {
+    if (scanResults.isEmpty()) {
+      request->send(200, "application/json", "{\"status\":\"scan_in_progress\"}");
     } else {
-      Serial.println("Using default WiFi credentials");
-      Serial.println("SSID: " + String(ssid));
+      request->send(200, "application/json", scanResults);
     }
-
-    // Clean disconnect first
-    WiFi.disconnect(true);
-    delay(1000);
-
-    // Set WiFi mode
-    WiFi.mode(WIFI_STA);
-
-    Serial.println("Connecting to WiFi...");
-    Serial.print("Attempting to connect to: ");
-    Serial.println(ssid);
-
-    // Start connection
-    WiFi.begin(ssid.c_str(), password.c_str());
-
-    // Wait for connection with timeout
-    int attempts = 0;
-    while (WiFi.status() != WL_CONNECTED && attempts < 30) {
-        Serial.print(".");
-        delay(500);
-        attempts++;
-        yield(); // Prevent watchdog reset
-
-        // Print status every 5 attempts
-        if (attempts % 10 == 0) {
-            Serial.print(" Status: ");
-            Serial.println(WiFi.status());
-        }
-    }
-
-    if (WiFi.status() == WL_CONNECTED) {
-        Serial.println("");
-        Serial.println("WiFi connected successfully!");
-        Serial.print("IP address: ");
-        Serial.println(WiFi.localIP());
-        Serial.print("Signal strength: ");
-        Serial.print(WiFi.RSSI());
-        Serial.println(" dBm");
-        Serial.print("Gateway: ");
-        Serial.println(WiFi.gatewayIP());
-        digitalWrite(led, LOW); // Turn off LED
-
-        // Enable auto-reconnect after successful connection
-        WiFi.setAutoReconnect(true);
-    } else {
-        Serial.println("");
-        Serial.println("Failed to connect to WiFi!");
-        Serial.print("Final WiFi status: ");
-        Serial.println(WiFi.status());
-        Serial.println("Status codes: 0=IDLE, 1=NO_SSID, 3=CONNECTED, 4=CONNECT_FAILED, 6=DISCONNECTED");
-        digitalWrite(led, HIGH); // Keep LED on to indicate failure
-
-        // Try to start AP mode as fallback
-        Serial.println("Starting AP mode as fallback...");
-        WiFi.mode(WIFI_AP);
-        WiFi.softAP("NodeMCU-Setup", "12345678");
-        Serial.print("AP IP address: ");
-        Serial.println(WiFi.softAPIP());
-    }
+  }
 }
