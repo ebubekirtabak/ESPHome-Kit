@@ -87,6 +87,20 @@ void setup() {
     request->send(200, "application/json", "{\"status\":\"ok\",\"message\":\"Server is working\"}");
   });
 
+  server.on("/api/wifi_json", HTTP_GET, [](AsyncWebServerRequest *request){
+    Serial.println("wifiConfig endpoint called");
+    DynamicJsonDocument wifiConfig = loadWiFiConfig();
+    if (!wifiConfig.isNull()) {
+      Serial.println("Loaded WiFi config: " );
+      String ssid = wifiConfig["ssid"] | "";
+      Serial.println(ssid);
+    }
+
+    String configString;
+    serializeJson(wifiConfig, configString);
+    request->send(200, "application/json", configString);
+  });
+
   server.on("/api/wifi", HTTP_POST, [](AsyncWebServerRequest *request){}, NULL,
     [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total){
       DynamicJsonDocument doc(1024);
