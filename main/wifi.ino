@@ -28,28 +28,50 @@ DynamicJsonDocument loadWiFiConfig() {
 
 void connectToWifi() {
   DynamicJsonDocument wifiConfig = loadWiFiConfig();
-  if (!wifiConfig.isNull()) {
+  if (!wifiConfig.isNull() && wifiConfig.containsKey("ssid") && wifiConfig.containsKey("password")) {
     String ssid = wifiConfig["ssid"] | "";
     String password = wifiConfig["password"] | "";
-    Serial.printf("Loaded WiFi config: %s\n", ssid.c_str());
+    Serial.printf("Loaded WiFi config: %s %s\n", ssid.c_str(), password.c_str());
     WiFi.begin(ssid, password);
+    if (!WiFi.config(local_IP, gateway, subnet, primaryDNS, secondaryDNS)) {
+      Serial.println("STA Failed to configure");
+    }
+
+    while (WiFi.waitForConnectResult() != WL_CONNECTED) {
+      Serial.println("Connection Failed! Rebooting...");
+      digitalWrite(led, HIGH);
+      WiFi.disconnect();
+      delay(200);
+      createAP();
+      return;
+    }
+
+    debugV("WiFi connected: %s", WiFi.localIP().toString().c_str());
   } else {
-    debugV("No WiFi config found, using default credentials.");
+    debugV("No WiFi config found, starting AP mode.");
+    createAP();
   }
+}
 
-  if (!WiFi.config(local_IP, gateway, subnet, primaryDNS, secondaryDNS)) {
-    Serial.println("STA Failed to configure");
+void createAP() {
+  const char *ap_ssid = "NodeMCU_Config";
+  const char *ap_password = "";
+
+  WiFi.mode(WIFI_AP);
+
+  IPAddress apIP(192, 168, 4, 1);
+  IPAddress apGateway(192, 168, 4, 1);
+  IPAddress apSubnet(255, 255, 255, 0);
+
+  WiFi.softAPConfig(apIP, apGateway, apSubnet);
+
+  if (WiFi.softAP(ap_ssid, ap_password)) {
+    IPAddress actualIP = WiFi.softAPIP();
+    debugV("AP mode active. Connect to SSID '%s' to configure WiFi.", ap_ssid);
+    debugV("Captive portal available at: http://%s", actualIP.toString().c_str());
+  } else {
+    Serial.println("Failed to start Access Point!");
   }
-
-  while (WiFi.waitForConnectResult() != WL_CONNECTED) {
-    Serial.println("Connection Failed! Rebooting...");
-    digitalWrite(led, HIGH);
-    // WiFi.disconnect();
-    delay(900);
-    // ESP.restart();
-  }
-
-  debugV("WiFi connected: %s", WiFi.localIP().toString().c_str());
 }
 
 String scanWifi() {
