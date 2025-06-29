@@ -9,6 +9,7 @@
 #include <FS.h>
 #include <LittleFS.h>
 #include <DNSServer.h>
+#include "wifi-handlers.h"
 
 RemoteDebug Debug;
 DNSServer dnsServer;
@@ -130,32 +131,7 @@ void setup() {
     request->send(200, "application/json", configString);
   });
 
-  server.on("/api/wifi", HTTP_POST, [](AsyncWebServerRequest *request){}, NULL,
-    [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total){
-      DynamicJsonDocument doc(1024);
-      deserializeJson(doc, (char*)data);
-
-      String newSSID = doc["ssid"];
-      String newPassword = doc["password"];
-
-      if (LittleFS.exists("/wifi_config.json")) {
-        LittleFS.remove("/wifi_config.json");
-      }
-
-      File configFile = LittleFS.open("/wifi_config.json", "w");
-      if (configFile) {
-        String config = "{\"ssid\":\"" + newSSID + "\",\"password\":\"" + newPassword + "\", \"local_IP\": \"" +"192.168.1.184" + "\"}";
-        configFile.print(config);
-        configFile.close();
-
-        request->send(200, "application/json", "{\"status\":\"success\",\"message\":\"WiFi credentials saved\"}");
-        delay(1000);
-        Serial.println("Restarting to apply new WiFi credentials...");
-        ESP.restart();
-      } else {
-        request->send(500, "application/json", "{\"status\":\"error\",\"message\":\"Failed to save credentials\"}");
-      }
-    });
+  server.on("/api/wifi", HTTP_POST, [](AsyncWebServerRequest *request){}, NULL, handleWifiRequest);
 
   server.on("/api/status", HTTP_GET, [](AsyncWebServerRequest *request){
     String json = "{";
