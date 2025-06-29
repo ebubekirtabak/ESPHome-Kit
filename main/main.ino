@@ -33,12 +33,23 @@ void setup() {
   digitalWrite(led, LOW);
   Serial.begin(115200);
 
+  Debug.begin("ESP8266");
+  Debug.setSerialEnabled(true);
   delay(100);
+
+  while (!Serial) {
+    delay(100);
+  }
 
   Serial.println("Booting NodeMCU Home Control");
   Serial.printf("Free heap at startup: %d\n", ESP.getFreeHeap());
   Serial.printf("Flash chip size: %d\n", ESP.getFlashChipSize());
   Serial.printf("Sketch size: %d\n", ESP.getSketchSize());
+
+  if (!LittleFS.begin()) {
+    Serial.println("An Error has occurred while mounting LittleFS");
+    return;
+  }
 
   connectToWifi();
 
@@ -49,14 +60,6 @@ void setup() {
     Serial.printf("IP: %s\n", WiFi.localIP().toString().c_str());
   } else if (WiFi.getMode() == WIFI_AP) {
     Serial.printf("AP mode - IP: %s\n", WiFi.softAPIP().toString().c_str());
-  }
-
-  Debug.begin("ESP8266");
-  Debug.setSerialEnabled(true);
-
-  if (!LittleFS.begin()) {
-    Serial.println("An Error has occurred while mounting LittleFS");
-    return;
   }
 
   Serial.printf("Free heap after LittleFS init: %d\n", ESP.getFreeHeap());
@@ -77,9 +80,6 @@ void setup() {
             { request->send(LittleFS, "/index.html", "text/html"); });
 
   Serial.println("Setting up API endpoints...");
-  String json = scanWifi();
-  Serial.println("WiFi scan completed, JSON response ready: ");
-  Serial.println(json);
 
   server.on("/api/scan", HTTP_GET, handleWifiScanRequest);
   server.on("/api/test", HTTP_GET, [](AsyncWebServerRequest *request){
@@ -111,7 +111,7 @@ void setup() {
 
       File configFile = LittleFS.open("/wifi_config.json", "w");
       if (configFile) {
-        String config = "{\"ssid\":\"" + newSSID + "\",\"password\":\"" + newPassword + "\"}";
+        String config = "{\"ssid\":\"" + newSSID + "\",\"password\":\"" + newPassword + ", \"local_IP\": \"" +"192.168.1.184" + "\"}";
         configFile.print(config);
         configFile.close();
 
