@@ -8,8 +8,10 @@
 #include <ESPAsyncWebServer.h>
 #include <FS.h>
 #include <LittleFS.h>
+#include <DNSServer.h>
 
 RemoteDebug Debug;
+DNSServer dnsServer;
 
 const int led = 2;
 int ledState = LOW;
@@ -60,6 +62,9 @@ void setup() {
     Serial.printf("IP: %s\n", WiFi.localIP().toString().c_str());
   } else if (WiFi.getMode() == WIFI_AP) {
     Serial.printf("AP mode - IP: %s\n", WiFi.softAPIP().toString().c_str());
+    const byte DNS_PORT = 53;
+    dnsServer.start(DNS_PORT, "*", WiFi.softAPIP());
+    Serial.println("DNS Server started for captive portal");
   }
 
   Serial.printf("Free heap after LittleFS init: %d\n", ESP.getFreeHeap());
@@ -78,6 +83,30 @@ void setup() {
 
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
             { request->send(LittleFS, "/index.html", "text/html"); });
+
+  server.on("/generate_204", HTTP_GET, [](AsyncWebServerRequest *request) {
+    request->redirect("http://" + WiFi.softAPIP().toString());
+  });
+
+  server.on("/connecttest.txt", HTTP_GET, [](AsyncWebServerRequest *request) {
+    request->redirect("http://" + WiFi.softAPIP().toString());
+  });
+
+  server.on("/hotspot-detect.html", HTTP_GET, [](AsyncWebServerRequest *request) {
+    request->redirect("http://" + WiFi.softAPIP().toString());
+  });
+
+  server.on("/canonical.html", HTTP_GET, [](AsyncWebServerRequest *request) {
+    request->redirect("http://" + WiFi.softAPIP().toString());
+  });
+
+  server.on("/success.txt", HTTP_GET, [](AsyncWebServerRequest *request) {
+    request->redirect("http://" + WiFi.softAPIP().toString());
+  });
+
+  server.on("/ncsi.txt", HTTP_GET, [](AsyncWebServerRequest *request) {
+    request->redirect("http://" + WiFi.softAPIP().toString());
+  });
 
   Serial.println("Setting up API endpoints...");
 
@@ -109,9 +138,13 @@ void setup() {
       String newSSID = doc["ssid"];
       String newPassword = doc["password"];
 
+      if (LittleFS.exists("/wifi_config.json")) {
+        LittleFS.remove("/wifi_config.json");
+      }
+
       File configFile = LittleFS.open("/wifi_config.json", "w");
       if (configFile) {
-        String config = "{\"ssid\":\"" + newSSID + "\",\"password\":\"" + newPassword + ", \"local_IP\": \"" +"192.168.1.184" + "\"}";
+        String config = "{\"ssid\":\"" + newSSID + "\",\"password\":\"" + newPassword + "\", \"local_IP\": \"" +"192.168.1.184" + "\"}";
         configFile.print(config);
         configFile.close();
 
@@ -137,8 +170,40 @@ void setup() {
   server.onNotFound([](AsyncWebServerRequest *request) {
     Serial.printf("404 Not Found: %s %s\n", request->methodToString(), request->url().c_str());
     Serial.printf("Client IP: %s\n", request->client()->remoteIP().toString().c_str());
-    request->send(404, "text/plain", "Not Found");
+
+    // If in AP mode, redirect to captive portal
+    if (WiFi.getMode() == WIFI_AP || WiFi.getMode() == WIFI_AP_STA) {
+      Serial.println("Redirecting to captive portal");
+      String redirectHTML = "<!DOCTYPE html><html><head>";
+      redirectHTML += "<meta charset='utf-8'>";
+      redirectHTML += "<meta name='viewport' content='width=device-width,initial-scale=1'>";
+      redirectHTML += "<title>WiFi Setup</title>";
+      redirectHTML += "<script>window.location.href='http://" + WiFi.softAPIP().toString() + "/';</script>";
+      redirectHTML += "</head><body>";
+      redirectHTML += "<p>Redirecting to WiFi setup...</p>";
+      redirectHTML += "<p>If not redirected automatically, <a href='http://" + WiFi.softAPIP().toString() + "/'>click here</a></p>";
+      redirectHTML += "</body></html>";
+      request->send(200, "text/html", redirectHTML);
+    } else {
+      request->send(404, "text/plain", "Not Found");
+    }
  });
+
+  server.on("/test", HTTP_GET, [](AsyncWebServerRequest *request){
+    Serial.println("Test page requested");
+    String testHTML = R"html(
+      <!DOCTYPE html>
+      <html><head><title>Captive Portal Test</title></head>
+      <body>
+      <h1>NodeMCU Captive Portal Test</h1>
+      <p>If you can see this page, the captive portal is working!</p>
+      <p>Device IP: )html" + (WiFi.getMode() == WIFI_AP ? WiFi.softAPIP().toString() : WiFi.localIP().toString()) + R"html(</p>
+      <p>WiFi Mode: )html" + String(WiFi.getMode()) + R"html(</p>
+      <p><a href="/">Go to main page</a></p>
+      </body></html>
+      )html";
+    request->send(200, "text/html", testHTML);
+  });
 
   Serial.println("Starting web server...");
   server.begin();
@@ -149,4 +214,8 @@ void setup() {
 void loop() {
   ArduinoOTA.handle();
   Debug.handle();
+
+  if (WiFi.getMode() == WIFI_AP || WiFi.getMode() == WIFI_AP_STA) {
+    dnsServer.processNextRequest();
+  }
 }
