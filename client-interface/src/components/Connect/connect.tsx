@@ -1,11 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Button } from '@heroui/button';
-import { Card, CardBody, CardHeader } from '@heroui/card';
-import { Select, SelectItem } from '@heroui/select';
-import { Input } from '@heroui/input';
-import { Spinner } from '@heroui/spinner';
-import { Chip } from '@heroui/chip';
 import './connect.css';
+import { Button, Card, CardBody, CardHeader, Chip, Input, Select, SelectItem, Spinner } from '@heroui/react';
 
 interface WiFiNetwork {
   ssid: string;
@@ -43,36 +38,31 @@ const Connect: React.FC = () => {
     } catch (error) {
       console.error('Failed to fetch WiFi status:', error);
     }
-  };  const scanNetworks = async () => {
+  };
+  const scanNetworks = async () => {
     setIsScanning(true);
     try {
-      // Try the advanced scan first
       let response = await fetch('/api/scan');
       let data = await response.json();
 
-      // If advanced scan fails, try simple scan
       if (!response.ok || data.error) {
         console.log('Advanced scan failed, trying simple scan...');
         response = await fetch('/api/scan-simple');
         data = await response.json();
       }
 
-      // Handle different response formats
-      if (Array.isArray(data)) {
-        setNetworks(data);
+      const { networks = [], status } = data;
+      if (status === 'scan_completed' ) {
+        setNetworks(networks);
         if (data.length === 0) {
           showMessage('No WiFi networks found', 'error');
         }
-      } else if (data.networks && Array.isArray(data.networks)) {
-        setNetworks(data.networks);
-      } else if (data.message) {
-        showMessage(data.message, 'error');
-        setNetworks([]);
-      } else if (data.error) {
-        showMessage(data.error, 'error');
-        setNetworks([]);
+      } else if (status === 'scan_in_progress' || status === 'scan_started' ) {
+        setTimeout(() => {
+          scanNetworks();
+        }, 3000);
       } else {
-        showMessage('Unexpected response format', 'error');
+        showMessage('Unexpected response format from scan: ', status);
         setNetworks([]);
       }
     } catch (error) {
@@ -217,6 +207,7 @@ const Connect: React.FC = () => {
             <Button
               size="sm"
               variant="bordered"
+              color="primary"
               onPress={scanNetworks}
               isLoading={isScanning}
               disabled={isScanning}
