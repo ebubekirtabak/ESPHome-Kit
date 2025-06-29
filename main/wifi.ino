@@ -1,47 +1,55 @@
-#ifndef STASSID
-#define STASSID "SUPERONLINE_WiFi_C9A3"
-#define STAPSK "Sparta_21?"
-#endif
-
-const char *defaultSSID = STASSID;
-const char *defaultPassword = STAPSK;
 IPAddress local_IP(192, 168, 1, 184);
 IPAddress gateway(192, 168, 1, 1);
 IPAddress subnet(255, 255, 0, 0);
 IPAddress primaryDNS(8, 8, 8, 8);
 IPAddress secondaryDNS(8, 8, 4, 4);
 
-String loadWiFiConfig() {
-  if (LittleFS.exists("/wifi_config.json")) {
-    File configFile = LittleFS.open("/wifi_config.json", "r");
+DynamicJsonDocument loadWiFiConfig() {
+  if (LittleFS.exists("wifi_config.json")) {
+    File configFile = LittleFS.open("wifi_config.json", "r");
     if (configFile) {
       String config = configFile.readString();
       configFile.close();
-      return config;
+      DynamicJsonDocument doc(512);
+      DeserializationError error = deserializeJson(doc, config);
+      if (!error) {
+        debugV("wifiConfig: %s", config.c_str());
+        return doc;
+      } else {
+        debugV("Failed to parse WiFi config JSON.");
+        return DynamicJsonDocument(512);
+      }
     }
   }
-  return "";
+
+  Serial.println("WiFi config file not found, using default credentials.");
+  return DynamicJsonDocument(512);
 }
 
-
 void connectToWifi() {
-    WiFi.begin(defaultSSID, defaultPassword);
-    if (!WiFi.config(local_IP, gateway, subnet, primaryDNS, secondaryDNS)) {
-      Serial.println("STA Failed to configure");
-    }
+  DynamicJsonDocument wifiConfig = loadWiFiConfig();
+  if (!wifiConfig.isNull()) {
+    String ssid = wifiConfig["ssid"] | "";
+    String password = wifiConfig["password"] | "";
+    Serial.printf("Loaded WiFi config: %s\n", ssid.c_str());
+    WiFi.begin(ssid, password);
+  } else {
+    debugV("No WiFi config found, using default credentials.");
+  }
 
-    while (WiFi.waitForConnectResult() != WL_CONNECTED) {
-      Serial.println("Connection Failed! Rebooting...");
-      digitalWrite(led, HIGH);
-      // WiFi.disconnect();
-      delay(900);
-      // ESP.restart();
-    }
+  if (!WiFi.config(local_IP, gateway, subnet, primaryDNS, secondaryDNS)) {
+    Serial.println("STA Failed to configure");
+  }
 
-    Serial.println("");
-    Serial.println("WiFi connected");
-    Serial.println("IP address: ");
-    Serial.println(WiFi.localIP());
+  while (WiFi.waitForConnectResult() != WL_CONNECTED) {
+    Serial.println("Connection Failed! Rebooting...");
+    digitalWrite(led, HIGH);
+    // WiFi.disconnect();
+    delay(900);
+    // ESP.restart();
+  }
+
+  debugV("WiFi connected: %s", WiFi.localIP().toString().c_str());
 }
 
 String scanWifi() {
