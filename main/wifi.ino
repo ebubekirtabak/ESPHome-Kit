@@ -1,9 +1,3 @@
-IPAddress local_IP(192, 168, 1, 184);
-IPAddress gateway(192, 168, 1, 1);
-IPAddress subnet(255, 255, 0, 0);
-IPAddress primaryDNS(8, 8, 8, 8);
-IPAddress secondaryDNS(8, 8, 4, 4);
-
 DynamicJsonDocument loadWiFiConfig() {
   if (LittleFS.exists("wifi_config.json")) {
     File configFile = LittleFS.open("wifi_config.json", "r");
@@ -31,14 +25,31 @@ void connectToWifi() {
   if (!wifiConfig.isNull() && wifiConfig.containsKey("ssid") && wifiConfig.containsKey("password")) {
     String ssid = wifiConfig["ssid"] | "";
     String password = wifiConfig["password"] | "";
-    Serial.printf("Loaded WiFi config: %s %s\n", ssid.c_str(), password.c_str());
+    debugV("Loaded WiFi config: %s\n", ssid.c_str());
+
     WiFi.begin(ssid, password);
-    if (!WiFi.config(local_IP, gateway, subnet, primaryDNS, secondaryDNS)) {
-      Serial.println("STA Failed to configure");
+
+    IPAddress configIP, configGateway, configSubnet, configPrimaryDNS, configSecondaryDNS;
+
+    configIP.fromString(wifiConfig["local_IP"] | "192.168.1.184");
+    configGateway.fromString(wifiConfig["gateway"] | "192.168.1.1");
+    configSubnet.fromString(wifiConfig["subnet"] | "255.255.255.0");
+    configPrimaryDNS.fromString(wifiConfig["primaryDNS"] | "8.8.8.8");
+    configSecondaryDNS.fromString(wifiConfig["secondaryDNS"] | "8.8.4.4");
+
+    if (!WiFi.config(configIP, configGateway, configSubnet, configPrimaryDNS, configSecondaryDNS)) {
+      debugE("STA Failed to configure");
     }
 
+    debugV("Configured network settings:");
+    debugV("  IP: %s", configIP.toString().c_str());
+    debugV("  Gateway: %s", configGateway.toString().c_str());
+    debugV("  Subnet: %s", configSubnet.toString().c_str());
+    debugV("  Primary DNS: %s", configPrimaryDNS.toString().c_str());
+    debugV("  Secondary DNS: %s", configSecondaryDNS.toString().c_str());
+
     while (WiFi.waitForConnectResult() != WL_CONNECTED) {
-      Serial.println("Connection Failed! Rebooting...");
+      debugE("Connection Failed! Starting AP mode...");
       digitalWrite(led, HIGH);
       WiFi.disconnect();
       delay(200);
