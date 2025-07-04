@@ -236,7 +236,7 @@ const Connect: React.FC = () => {
               isLoading={isScanning}
             >
               {networks.map((network) => (
-                <SelectItem key={network.ssid}>
+                <SelectItem key={network.ssid} textValue={network.ssid}>
                   <div className="flex justify-between items-center w-full">
                     <div className="flex items-center gap-2">
                       <span>{network.ssid}</span>
