@@ -1,45 +1,51 @@
 import { useState, useEffect } from 'react'
-import {Button} from "@heroui/react";
-import Connect from './components/Connect/connect';
-import './App.css';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import Layout from './components/Layout/Layout'
+import Dashboard from './components/Dashboard/Dashboard'
+import Settings from './components/Settings/Settings'
+import Connect from './components/Connect/connect'
+import './App.css'
 
 function App() {
-  const [showConnect, setShowConnect] = useState(false)
   const [isAPMode, setIsAPMode] = useState(false)
 
   useEffect(() => {
-    // Check if we're in AP mode by checking the current hostname/IP
     const checkAPMode = () => {
       const hostname = window.location.hostname;
-      // AP mode typically uses 192.168.4.1 or the configured STA IP
       if (hostname.startsWith('192.168.4') || hostname === '192.168.4.1') {
         setIsAPMode(true);
-        setShowConnect(true); // Auto-show WiFi setup in AP mode
       }
     };
 
     checkAPMode();
   }, []);
 
-  return (
-    <>
-      <h1>NodeMCU Home Control</h1>
-      {isAPMode && (
-        <div className="bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 rounded mb-4">
-          <strong>Setup Mode:</strong> Configure WiFi to connect your device to the internet.
+  // If in AP mode, show only the WiFi setup
+  if (isAPMode) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-4">
+        <div className="max-w-2xl mx-auto">
+          <h1 className="text-3xl font-bold mb-4">NodeMCU WiFi Setup</h1>
+          <div className="bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 rounded mb-6">
+            <strong>Setup Mode:</strong> Configure WiFi to connect your device to the internet.
+          </div>
+          <Connect />
         </div>
-      )}
-      <div className="flex gap-4 mb-4">
-        <Button
-          color="primary"
-          variant="solid"
-          onPress={() => setShowConnect(!showConnect)}
-        >
-          {showConnect ? 'Hide WiFi Setup' : 'WiFi Setup'}
-        </Button>
       </div>
-      {showConnect && <Connect />}
-    </>
+    );
+  }
+
+  // Normal mode with full routing
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<Layout />}>
+          <Route index element={<Navigate to="/dashboard" replace />} />
+          <Route path="dashboard" element={<Dashboard />} />
+          <Route path="settings" element={<Settings />} />
+        </Route>
+      </Routes>
+    </Router>
   )
 }
 
