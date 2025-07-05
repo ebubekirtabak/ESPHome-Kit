@@ -85,6 +85,17 @@ void setup() {
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
             { request->send(LittleFS, "/index.html", "text/html"); });
 
+  // Client-side routes - serve index.html for React Router
+  // Serve index.html for all client-side routes (except API/assets/static files)
+  server.on("^\\/([a-zA-Z0-9\\-_/]+)?$", HTTP_GET, [](AsyncWebServerRequest *request) {
+    String url = request->url();
+    if (!url.startsWith("/api/") && !url.startsWith("/assets/") && url.indexOf('.') == -1) {
+      request->send(LittleFS, "/index.html", "text/html");
+    } else {
+      request->send(404, "text/plain", "Not Found");
+    }
+  });
+
   server.on("/generate_204", HTTP_GET, [](AsyncWebServerRequest *request) {
     request->redirect("http://" + WiFi.softAPIP().toString());
   });
@@ -147,7 +158,8 @@ void setup() {
     Serial.printf("404 Not Found: %s %s\n", request->methodToString(), request->url().c_str());
     Serial.printf("Client IP: %s\n", request->client()->remoteIP().toString().c_str());
 
-    // If in AP mode, redirect to captive portal
+    String url = request->url();
+
     if (WiFi.getMode() == WIFI_AP || WiFi.getMode() == WIFI_AP_STA) {
       Serial.println("Redirecting to captive portal");
       String redirectHTML = "<!DOCTYPE html><html><head>";
@@ -160,6 +172,10 @@ void setup() {
       redirectHTML += "<p>If not redirected automatically, <a href='http://" + WiFi.softAPIP().toString() + "/'>click here</a></p>";
       redirectHTML += "</body></html>";
       request->send(200, "text/html", redirectHTML);
+    } else if (!url.startsWith("/api/") && !url.startsWith("/assets/") &&
+      url.indexOf('.') == -1 && request->method() == HTTP_GET) {
+      Serial.println("Serving index.html for client-side route: " + url);
+      request->send(LittleFS, "/index.html", "text/html");
     } else {
       request->send(404, "text/plain", "Not Found");
     }
