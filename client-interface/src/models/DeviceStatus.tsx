@@ -10,6 +10,8 @@ type DeviceStatus = {
   freeHeap: number;
   uptime: number;
   chipId: string;
+  relay1State?: boolean;
+  relay2State?: boolean;
 };
 
 export default DeviceStatus;
