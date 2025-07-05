@@ -50,7 +50,6 @@ void connectToWifi() {
 
     while (WiFi.waitForConnectResult() != WL_CONNECTED) {
       debugE("Connection Failed! Starting AP mode...");
-      digitalWrite(led, HIGH);
       WiFi.disconnect();
       delay(200);
       createAP();
