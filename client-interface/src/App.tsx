@@ -20,7 +20,6 @@ function App() {
     checkAPMode();
   }, []);
 
-  // If in AP mode, show only the WiFi setup
   if (isAPMode) {
     return (
       <div className="min-h-screen bg-gray-50 p-4">
@@ -35,7 +34,6 @@ function App() {
     );
   }
 
-  // Normal mode with full routing
   return (
     <Router>
       <Routes>
