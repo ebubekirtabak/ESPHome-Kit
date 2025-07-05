@@ -15,8 +15,10 @@
 RemoteDebug Debug;
 DNSServer dnsServer;
 
-const int led = 2;
-int ledState = LOW;
+const int relay1Pin = 5;  // GPIO5 (D1)
+const int relay2Pin = 4;  // GPIO4 (D2)
+bool relay1State = LOW;
+bool relay2State = LOW;
 
 bool GPIO_State = 0;
 
@@ -33,8 +35,11 @@ void notifyClients()
 }
 
 void setup() {
-  pinMode(led, OUTPUT);
-  digitalWrite(led, LOW);
+  pinMode(relay1Pin, OUTPUT);
+  pinMode(relay2Pin, OUTPUT);
+  digitalWrite(relay1Pin, LOW);
+  digitalWrite(relay2Pin, LOW);
+
   Serial.begin(115200);
 
   Debug.begin("ESP8266");
@@ -77,7 +82,6 @@ void setup() {
   listDir(LittleFS, "/", 0);
 
   initOTA();
-  digitalWrite(led, LOW);
   Serial.println("Ready");
   Serial.print("IP address: ");
   Serial.println(WiFi.localIP());
