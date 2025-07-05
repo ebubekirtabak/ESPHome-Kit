@@ -164,7 +164,9 @@ void setup() {
     json += "\"buildTime\":\"" + String(BUILD_TIME) + "\",";
     json += "\"freeHeap\":" + String(ESP.getFreeHeap()) + ",";
     json += "\"uptime\":" + String(millis()) + ",";
-    json += "\"chipId\":\"" + String(ESP.getChipId(), HEX) + "\"";
+    json += "\"chipId\":\"" + String(ESP.getChipId(), HEX) + "\",";
+    json += "\"relay1State\":" + String(relay1State ? "true" : "false") + ",";
+    json += "\"relay2State\":" + String(relay2State ? "true" : "false");
     json += "}";
     request->send(200, "application/json", json);
   });
