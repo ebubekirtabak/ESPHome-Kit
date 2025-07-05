@@ -10,6 +10,7 @@
 #include <LittleFS.h>
 #include <DNSServer.h>
 #include "wifi-handlers.h"
+#include "build_info.h"
 
 RemoteDebug Debug;
 DNSServer dnsServer;
@@ -45,6 +46,9 @@ void setup() {
   }
 
   Serial.println("Booting NodeMCU Home Control");
+  Serial.printf("Firmware Version: %s\n", FIRMWARE_VERSION);
+  Serial.printf("Build Number: %d\n", BUILD_NUMBER);
+  Serial.printf("Build Date: %s %s\n", BUILD_DATE, BUILD_TIME);
   Serial.printf("Free heap at startup: %d\n", ESP.getFreeHeap());
   Serial.printf("Flash chip size: %d\n", ESP.getFlashChipSize());
   Serial.printf("Sketch size: %d\n", ESP.getSketchSize());
@@ -149,7 +153,14 @@ void setup() {
     json += "\"connected\":" + String(WiFi.isConnected() ? "true" : "false") + ",";
     json += "\"ssid\":\"" + WiFi.SSID() + "\",";
     json += "\"ip\":\"" + WiFi.localIP().toString() + "\",";
-    json += "\"rssi\":" + String(WiFi.RSSI());
+    json += "\"rssi\":" + String(WiFi.RSSI()) + ",";
+    json += "\"firmwareVersion\":\"" + String(FIRMWARE_VERSION) + "\",";
+    json += "\"buildNumber\":" + String(BUILD_NUMBER) + ",";
+    json += "\"buildDate\":\"" + String(BUILD_DATE) + "\",";
+    json += "\"buildTime\":\"" + String(BUILD_TIME) + "\",";
+    json += "\"freeHeap\":" + String(ESP.getFreeHeap()) + ",";
+    json += "\"uptime\":" + String(millis()) + ",";
+    json += "\"chipId\":\"" + String(ESP.getChipId(), HEX) + "\"";
     json += "}";
     request->send(200, "application/json", json);
   });
