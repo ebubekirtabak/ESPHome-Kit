@@ -10,6 +10,7 @@
 #include <LittleFS.h>
 #include <DNSServer.h>
 #include "wifi-handlers.h"
+#include "relay-handlers.h"
 #include "build_info.h"
 
 RemoteDebug Debug;
@@ -170,6 +171,10 @@ void setup() {
     json += "}";
     request->send(200, "application/json", json);
   });
+
+  server.on("/api/relay1", HTTP_POST, handleRelay1ControlRequest);
+  server.on("/api/relay2", HTTP_POST, handleRelay2ControlRequest);
+  server.on("/api/relays", HTTP_GET, handleRelayStatusRequest);
 
   server.onNotFound([](AsyncWebServerRequest *request) {
     Serial.printf("404 Not Found: %s %s\n", request->methodToString(), request->url().c_str());
