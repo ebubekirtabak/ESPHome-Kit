@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Card, CardBody, CardHeader, Tabs, Tab } from '@heroui/react';
-import Connect from '../Connect/connect';
-import DeviceSettings from '../DeviceSettings/DeviceSettings.component';
-import NetworkSettings from '../NetworkSettings/NetworkSettings.component';
+import Connect from '@components/Connect/connect';
+import DeviceSettings from '@components/DeviceSettings/DeviceSettings.component';
+import NetworkSettings from '@components/NetworkSettings/NetworkSettings.component';
 
 const Settings: React.FC = () => {
   const [selectedTab, setSelectedTab] = useState('wifi');
