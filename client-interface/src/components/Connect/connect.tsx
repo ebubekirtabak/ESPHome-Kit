@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import './connect.css';
 import { Button, Card, CardBody, CardHeader, Chip, Input, Select, SelectItem, Spinner } from '@heroui/react';
-import { EyeIcon, EyeOffIcon } from '../../icons';
+import { EyeIcon, EyeOffIcon } from '@/icons';
+
 
 interface WiFiNetwork {
   ssid: string;
