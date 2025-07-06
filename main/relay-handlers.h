@@ -2,7 +2,9 @@
 #define RELAY_HANDLERS_H
 
 #include <ESPAsyncWebServer.h>
+#include <RemoteDebug.h>
 
+extern RemoteDebug Debug;
 extern const int relay1Pin;
 extern const int relay2Pin;
 

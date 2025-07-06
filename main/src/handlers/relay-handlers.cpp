@@ -1,6 +1,7 @@
 #include "../../relay-handlers.h"
 #include <ESPAsyncWebServer.h>
 #include <Arduino.h>
+#include <RemoteDebug.h>
 
 void handleRelayStatusRequest(AsyncWebServerRequest *request) {
   String json = "{";
@@ -16,7 +17,7 @@ void handleRelay1ControlRequest(AsyncWebServerRequest *request) {
     relay1State = (state == "on" || state == "true" || state == "1");
     digitalWrite(relay1Pin, relay1State ? HIGH : LOW);
 
-    Serial.printf("Relay 1 turned %s\n", relay1State ? "ON" : "OFF");
+    debugD("Relay 1 turned %s\n", relay1State ? "ON" : "OFF");
 
     String json = "{\"status\":\"success\",\"relay1State\":" + String(relay1State ? "true" : "false") + "}";
     request->send(200, "application/json", json);
@@ -31,7 +32,7 @@ void handleRelay2ControlRequest(AsyncWebServerRequest *request) {
     relay2State = (state == "on" || state == "true" || state == "1");
     digitalWrite(relay2Pin, relay2State ? HIGH : LOW);
 
-    Serial.printf("Relay 2 turned %s\n", relay2State ? "ON" : "OFF");
+    debugD("Relay 2 turned %s\n", relay2State ? "ON" : "OFF");
 
     String json = "{\"status\":\"success\",\"relay2State\":" + String(relay2State ? "true" : "false") + "}";
     request->send(200, "application/json", json);
