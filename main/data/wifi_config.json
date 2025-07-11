@@ -1,4 +1,6 @@
 {
+  "ssid":"SUPERONLINE_WiFi_C9A3",
+  "password":"Sparta_21?",
   "local_IP": "192.168.1.184",
   "getaway": "192.168.1.1",
   "primaryDNS": "8.8.8.8",
