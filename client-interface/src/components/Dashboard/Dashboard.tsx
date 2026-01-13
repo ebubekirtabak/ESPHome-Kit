@@ -3,6 +3,7 @@ import { Card, CardBody, CardHeader, Chip, Button, Spinner } from '@heroui/react
 import DeviceStatus from '@/models/DeviceStatus';
 import DeviceConnectionStatus from './components/DeviceConnectionStatus/DeviceConnectionStatus.component';
 import DeviceInformations from './components/DeviceInformations/DeviceInformations.component';
+import RelayView from './components/RelayView/RelayView.component';
 
 const Dashboard: React.FC = () => {
   const [status, setStatus] = useState<DeviceStatus | null>(null);
@@ -34,6 +35,34 @@ const Dashboard: React.FC = () => {
     } catch (error) {
       console.error('Test failed:', error);
     }
+  };
+
+  const controlRelay = async (relayNumber: number, state: boolean) => {
+    try {
+      const response = await fetch(`/api/relay${relayNumber}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `state=${state ? 'on' : 'off'}`
+      });
+      const data = await response.json();
+      console.log(`Relay ${relayNumber} response:`, data);
+      // Refresh status to update relay states
+      fetchStatus();
+    } catch (error) {
+      console.error(`Failed to control relay ${relayNumber}:`, error);
+    }
+  };
+
+  const toggleRelay1 = () => {
+    const newState = !status?.relay1State;
+    controlRelay(1, newState);
+  };
+
+  const toggleRelay2 = () => {
+    const newState = !status?.relay2State;
+    controlRelay(2, newState);
   };
 
   if (isLoading) {
@@ -94,6 +123,21 @@ const Dashboard: React.FC = () => {
           </div>
         </CardBody>
       </Card>
+
+      {/* Relay Controls */}
+      <Card>
+        <CardHeader>
+          <h2 className="text-xl font-bold">Relay Controls</h2>
+        </CardHeader>
+        <CardBody>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <RelayView status={status?.relay1State as boolean} onToggle={toggleRelay1} />
+            <RelayView status={status?.relay2State as boolean} onToggle={toggleRelay2} />
+          </div>
+        </CardBody>
+      </Card>
+
+      {/* System Information */}
       <Card>
         <CardHeader>
           <h2 className="text-xl font-bold">System Information</h2>

@@ -10,13 +10,16 @@
 #include <LittleFS.h>
 #include <DNSServer.h>
 #include "wifi-handlers.h"
+#include "relay-handlers.h"
 #include "build_info.h"
 
 RemoteDebug Debug;
 DNSServer dnsServer;
 
-const int led = 2;
-int ledState = LOW;
+const int relay1Pin = 5;  // GPIO5 (D1)
+const int relay2Pin = 4;  // GPIO4 (D2)
+bool relay1State = LOW;
+bool relay2State = LOW;
 
 bool GPIO_State = 0;
 
@@ -33,8 +36,11 @@ void notifyClients()
 }
 
 void setup() {
-  pinMode(led, OUTPUT);
-  digitalWrite(led, LOW);
+  pinMode(relay1Pin, OUTPUT);
+  pinMode(relay2Pin, OUTPUT);
+  digitalWrite(relay1Pin, LOW);
+  digitalWrite(relay2Pin, LOW);
+
   Serial.begin(115200);
 
   Debug.begin("ESP8266");
@@ -77,7 +83,6 @@ void setup() {
   listDir(LittleFS, "/", 0);
 
   initOTA();
-  digitalWrite(led, LOW);
   Serial.println("Ready");
   Serial.print("IP address: ");
   Serial.println(WiFi.localIP());
@@ -160,10 +165,16 @@ void setup() {
     json += "\"buildTime\":\"" + String(BUILD_TIME) + "\",";
     json += "\"freeHeap\":" + String(ESP.getFreeHeap()) + ",";
     json += "\"uptime\":" + String(millis()) + ",";
-    json += "\"chipId\":\"" + String(ESP.getChipId(), HEX) + "\"";
+    json += "\"chipId\":\"" + String(ESP.getChipId(), HEX) + "\",";
+    json += "\"relay1State\":" + String(relay1State ? "true" : "false") + ",";
+    json += "\"relay2State\":" + String(relay2State ? "true" : "false");
     json += "}";
     request->send(200, "application/json", json);
   });
+
+  server.on("/api/relay1", HTTP_POST, handleRelay1ControlRequest);
+  server.on("/api/relay2", HTTP_POST, handleRelay2ControlRequest);
+  server.on("/api/relays", HTTP_GET, handleRelayStatusRequest);
 
   server.onNotFound([](AsyncWebServerRequest *request) {
     Serial.printf("404 Not Found: %s %s\n", request->methodToString(), request->url().c_str());
